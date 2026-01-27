@@ -16,6 +16,7 @@ python = "^3.13"
 prompt = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
+ruff = "^0.14.14"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
