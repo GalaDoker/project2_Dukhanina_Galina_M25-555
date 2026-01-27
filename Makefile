@@ -12,3 +12,6 @@ publish:
 
 package-install:
 	python3 -m pip install dist/*
+
+lint:
+	poetry run ruff check .
