@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+from .engine import welcome
+
+
 def main():
-    """Main function that prints a message when the module is run."""
-    print("DB project is running!")
+    """Main function that starts the database application."""
+    welcome()
 
 
 if __name__ == "__main__":
