@@ -38,11 +38,13 @@ def _cmd_describe(meta: dict, table_name: str) -> None:
 
 
 def welcome() -> None:
-    """Запуск приложения, цикл команд и парсинг."""
     print("Первая попытка запустить проект!")
     print("***")
     _print_help()
+    run()
 
+
+def run() -> None:
     meta = _ensure_schema(load_metadata(META_PATH))
 
     while True:
