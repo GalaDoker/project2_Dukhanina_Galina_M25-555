@@ -45,9 +45,9 @@ def welcome() -> None:
 
 
 def run() -> None:
-    meta = _ensure_schema(load_metadata(META_PATH))
-
     while True:
+        meta = _ensure_schema(load_metadata(META_PATH))
+
         try:
             raw = input("Введите команду: ").strip()
         except EOFError:
@@ -59,56 +59,74 @@ def run() -> None:
 
         parts = shlex.split(raw)
         cmd = parts[0]
+        args = parts[1:]
 
         if cmd == "exit":
             break
 
-        if cmd == "help":
+        elif cmd == "help":
             _print_help()
             continue
 
-        if cmd == "tables":
+        elif cmd == "tables":
             _cmd_tables(meta)
             continue
 
-        if cmd == "describe":
-            if len(parts) != 2:
+        elif cmd == "describe":
+            if len(args) != 1:
                 print("Ошибка: используйте describe <table>")
                 continue
-            _cmd_describe(meta, parts[1])
+            _cmd_describe(meta, args[0])
             continue
 
-        if cmd == "create":
-            if len(parts) < 3:
+        elif cmd == "create":
+            if len(args) < 2:
                 print("Ошибка: используйте create <table> <col:type> [<col:type> ...]")
                 continue
 
-            table_name = parts[1]
-            specs = parts[2:]
+            table_name = args[0]
+            col_specs = args[1:]
 
-            cols = []
-            for spec in specs:
+            ols = []
+            ok = True
+            for spec in col_specs:
                 if ":" not in spec:
                     print(f"Ошибка: неверный формат колонки '{spec}'. Нужно name:type")
-                    cols = None
+                    ok = False
                     break
-                n, t = spec.split(":", 1)
-                cols.append((n.strip(), t.strip()))
+                name, typ = spec.split(":", 1)
+                cols.append((name.strip(), typ.strip()))
 
-            if cols is None:
+            if not ok:
                 continue
 
+            old_meta = meta
             meta = create_table(meta, table_name, cols)
-            save_metadata(META_PATH, meta)
+
+            if "tables" in meta and table_name in meta["tables"]:
+                save_metadata(META_PATH, meta)
+                print(f"Таблица '{table_name}' создана.")
+            else:
+                meta = old_meta
+
             continue
 
-        if cmd == "drop":
-            if len(parts) != 2:
+        elif cmd == "drop":
+            if len(args) != 1:
                 print("Ошибка: используйте drop <table>")
                 continue
 
-            meta = drop_table(meta, parts[1])
-            save_metadata(META_PATH, meta)
+            table_name = args[0]
+            existed = "tables" in meta and table_name in meta["tables"]
+
+            meta = drop_table(meta, table_name)
+
+            if existed and ("tables" in meta and table_name not in meta["tables"]):
+                save_metadata(META_PATH, meta)
+                print(f"Таблица '{table_name}' удалена.")
+
             continue
 
-        print("Неизвестная команда. Введите help для списка команд.")
+        else:
+            print("Неизвестная команда. Введите help для списка команд.")
+            continue
