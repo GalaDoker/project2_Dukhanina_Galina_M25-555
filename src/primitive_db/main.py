@@ -4,7 +4,6 @@ from .engine import welcome
 
 
 def main():
-    """Main function that starts the database application."""
     welcome()
 
 
