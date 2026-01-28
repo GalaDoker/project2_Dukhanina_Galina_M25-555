@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from src.decorators import handle_db_errors
 from src.primitive_db.utils import load_metadata, save_metadata
 from src.primitive_db.utils import load_table_data, save_table_data
 
@@ -24,24 +25,21 @@ def table_exists(name: str, filepath: str = META_PATH) -> bool:
     meta = _ensure_schema(load_metadata(filepath))
     return name in meta["tables"]
 
-
+@handle_db_errors
 def create_table(metadata: dict, table_name: str, columns: list) -> dict:
     
     metadata = _ensure_schema(metadata)
 
     if not isinstance(table_name, str) or not table_name.strip():
-        print("Ошибка: имя таблицы должно быть непустой строкой.")
-        return metadata
+        raise ValueError("Ошибка: имя таблицы должно быть непустой строкой.")
 
     table_name = table_name.strip()
 
     if table_name in metadata["tables"]:
-        print(f"Ошибка: таблица '{table_name}' уже существует.")
-        return metadata
+        raise ValueError(f"Ошибка: таблица '{table_name}' уже существует.")
 
     if not isinstance(columns, list):
-        print("Ошибка: columns должен быть списком.")
-        return metadata
+        raise ValueError("Ошибка: columns должен быть списком.")
 
     parsed_columns = []
 
@@ -55,31 +53,26 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
             col_name, col_type = col["name"], col["type"]
 
         else:
-            print(
+            raise ValueError(
                 "Ошибка: неверный формат колонки. "
                 "Ожидается ('name','type') или {'name':..., 'type':...}."
             )
-            return metadata
 
         if not isinstance(col_name, str) or not col_name.strip():
-            print("Ошибка: имя колонки должно быть непустой строкой.")
-            return metadata
+            raise ValueError("Ошибка: имя колонки должно быть непустой строкой.")
 
         col_name = col_name.strip()
 
         if col_name.upper() == "ID":
-            print("Ошибка: столбец ID добавляется автоматически, не указывайте его вручную.")
-            return metadata
+            raise ValueError("Ошибка: столбец ID добавляется автоматически, не указывайте его вручную.")
 
         if not isinstance(col_type, str) or not col_type.strip():
-            print("Ошибка: тип колонки должен быть непустой строкой.")
-            return metadata
+            raise ValueError("Ошибка: тип колонки должен быть непустой строкой.")
 
         col_type = col_type.strip()
 
         if col_type not in ALLOWED_TYPES:
-            print("Ошибка: неверный тип данных. Разрешены только int, str, bool.")
-            return metadata
+            raise ValueError("Ошибка: неверный тип данных. Разрешены только int, str, bool.")
 
         parsed_columns.append({"name": col_name, "type": col_type})
 
@@ -93,19 +86,17 @@ def add_table(filepath: str, table_name: str, columns: list) -> dict:
     save_metadata(filepath, meta)
     return meta
 
-
+@handle_db_errors
 def drop_table(metadata: dict, table_name: str) -> dict:
     metadata = _ensure_schema(metadata)
 
     if not isinstance(table_name, str) or not table_name.strip():
-        print("Ошибка: имя таблицы должно быть непустой строкой.")
-        return metadata
+        raise ValueError("Ошибка: имя таблицы должно быть непустой строкой.")
 
     table_name = table_name.strip()
 
     if table_name not in metadata["tables"]:
-        print(f"Ошибка: таблица '{table_name}' не существует.")
-        return metadata
+        raise ValueError(f"Ошибка: таблица '{table_name}' не существует.")
 
     del metadata["tables"][table_name]
     return metadata
@@ -129,7 +120,7 @@ TYPE_CASTERS = {
     "bool": _to_bool,
 }
 
-
+@handle_db_errors
 def _get_table_schema(metadata: dict, table_name: str):
     tables = metadata.get("tables", {})
     if table_name not in tables:
@@ -166,13 +157,14 @@ def _row_matches_where(row: dict, where_clause: dict | None) -> bool:
             return False
     return True
 
+@handle_db_errors
 def insert(metadata: dict, table_name: str, values: list):
     cols = _get_table_schema(metadata, table_name)
 
     if not cols or cols[0]["name"] != "ID":
         raise ValueError("Первая колонка должна быть ID:int")
 
-    data_cols = cols[1:]  
+    data_cols = cols[1:]
 
     if len(values) != len(data_cols):
         raise ValueError(
@@ -209,6 +201,7 @@ def insert(metadata: dict, table_name: str, values: list):
     save_table_data(table_name, table_data)
     return table_data
 
+@handle_db_errors
 def select(table_data: list[dict], where_clause: dict | None = None) -> list[dict]:
     if not where_clause:
         return list(table_data)
@@ -219,6 +212,7 @@ def select(table_data: list[dict], where_clause: dict | None = None) -> list[dic
             result.append(row)
     return result
 
+@handle_db_errors
 def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list[dict]:
     if not set_clause:
         return table_data
@@ -230,6 +224,7 @@ def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list
 
     return table_data
 
+@handle_db_errors
 def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
     if not where_clause:
         return table_data
@@ -241,7 +236,6 @@ def describe_table(filepath: str, table_name: str) -> dict:
     meta = _ensure_schema(load_metadata(filepath))
 
     if table_name not in meta["tables"]:
-        print(f"Ошибка: таблица '{table_name}' не существует.")
-        return {}
+        raise ValueError(f"Ошибка: таблица '{table_name}' не существует.")
 
     return meta["tables"][table_name]
