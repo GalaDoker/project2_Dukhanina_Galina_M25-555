@@ -33,9 +33,25 @@ def _cmd_describe(meta: dict, table_name: str) -> None:
 
     cols = meta["tables"][table_name].get("columns", [])
     print(f"Таблица '{table_name}':")
-    for c in cols:
-        print(f"- {c.get('name')}:{c.get('type')}")
 
+    for c in cols:
+        if isinstance(c, dict):
+            name = c.get("name")
+            typ = c.get("type")
+
+        elif isinstance(c, (tuple, list)) and len(c) == 2:
+            name, typ = c[0], c[1]
+
+        elif isinstance(c, str) and ":" in c:
+            name, typ = c.split(":", 1)
+            name = name.strip()
+            typ = typ.strip()
+
+        else:
+            print(f"- {c}")
+            continue
+
+        print(f"- {name}:{typ}")
 
 def welcome() -> None:
     print("Первая попытка запустить проект!")
@@ -87,11 +103,11 @@ def run() -> None:
             table_name = args[0]
             col_specs = args[1:]
 
-            ols = []
+            cols = []
             ok = True
             for spec in col_specs:
                 if ":" not in spec:
-                    print(f"Ошибка: неверный формат колонки '{spec}'. Нужно name:type")
+                    print(f"Ошибка: неверный формат колонки '{spec}'. Нужно name:type (без пробелов)")
                     ok = False
                     break
                 name, typ = spec.split(":", 1)
@@ -119,11 +135,14 @@ def run() -> None:
             table_name = args[0]
             existed = "tables" in meta and table_name in meta["tables"]
 
+            old_meta = meta
             meta = drop_table(meta, table_name)
 
-            if existed and ("tables" in meta and table_name not in meta["tables"]):
+            if existed and "tables" in meta and table_name not in meta["tables"]:
                 save_metadata(META_PATH, meta)
                 print(f"Таблица '{table_name}' удалена.")
+            else:
+                meta = old_meta
 
             continue
 
