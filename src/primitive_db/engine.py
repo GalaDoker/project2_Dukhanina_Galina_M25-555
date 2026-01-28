@@ -1,10 +1,30 @@
 #!/usr/bin/env python3
 
 import shlex
+from prettytable import PrettyTable
 
-from src.primitive_db.utils import load_metadata, save_metadata, load_table_data, save_table_data
-from src.primitive_db.core import _ensure_schema, create_table, drop_table, insert
-from src.primitive_db.parser import parse_where_clause, parse_set_clause, parse_multiple_conditions
+from src.primitive_db.utils import (
+    load_metadata,
+    save_metadata,
+    load_table_data,
+    save_table_data,
+)
+
+from src.primitive_db.core import (
+    _ensure_schema,
+    create_table,
+    drop_table,
+    insert,
+    select,
+    update,
+    delete,
+)
+
+from src.primitive_db.parser import (
+    parse_where_clause,
+    parse_set_clause,
+    parse_multiple_conditions,
+)
 
 META_PATH = "db_meta.json"
 
@@ -17,6 +37,10 @@ def _print_help() -> None:
     print("<command> drop <table> - удалить таблицу")
     print("<command> describe <table> - показать структуру таблицы")
     print("<command> insert <table> <v1> <v2> ... - добавить запись")
+    print("<command> insert <table> <v1> <v2> ... - добавить запись")
+    print("<command> select <table> [WHERE col = value] - вывести записи")
+    print("<command> update <table> SET col = value WHERE col = value - обновить записи")
+    print("<command> delete <table> WHERE col = value - удалить записи")
 
 def _cmd_tables(meta: dict) -> None:
     tables = sorted(meta["tables"].keys())
@@ -154,8 +178,7 @@ def run() -> None:
                 continue
 
             table_name = args[0]
-
-            if table_name not in meta["tables"]:
+            if table_name not in meta.get("tables", {}):
                 print(f"Ошибка: таблица '{table_name}' не существует.")
                 continue
 
@@ -163,10 +186,10 @@ def run() -> None:
 
             where_clause = None
             if len(args) > 1:
-                where_str = " ".join(args[1:])
-
+                where_str = " ".join(args[1:]).strip()
                 if where_str.upper().startswith("WHERE"):
                     where_str = where_str[5:].strip()
+
                 try:
                     where_clause = parse_multiple_conditions(where_str, parse_where_clause)
                 except ValueError as e:
@@ -175,66 +198,72 @@ def run() -> None:
 
             result = select(table_data, where_clause)
 
-            from prettytable import PrettyTable
+            if not result:
+                print("Записей не найдено.")
+                continue
 
             if result:
-                cols = list(result[0].keys())
-                pt = PrettyTable(cols)
-                for row in result:
-                    pt.add_row([row.get(col) for col in cols])
-                print(pt)
+                  columns = list(result[0].keys())
+                  pt = PrettyTable(columns)
+                  for row in result:
+                      pt.add_row([row.get(c) for c in columns])
+                  print(pt)
             else:
                 print("Записей не найдено.")
 
             continue
 
         elif cmd == "update":
-            if len(args) < 5:
-                print("Ошибка: используйте update <table> SET column = value WHERE column = value")
+            if len(args) < 2:
+                print("Ошибка: используйте update <table> SET col = value WHERE col = value")
                 continue
 
             table_name = args[0]
-
-            if table_name not in meta["tables"]:
+            if table_name not in meta.get("tables", {}):
                 print(f"Ошибка: таблица '{table_name}' не существует.")
                 continue
 
-            cmd_str = " ".join(args)
-            set_idx = cmd_str.upper().find("SET")
-            where_idx = cmd_str.upper().find("WHERE")
+            cmd_str = " ".join(args[1:]).strip()
+            cmd_up = cmd_str.upper()
 
-            if set_idx == -1:
-                print("Ошибка: не найдено ключевое слово SET")
+            set_pos = cmd_up.find("SET")
+            where_pos = cmd_up.find("WHERE")
+
+            if set_pos == -1:
+                print("Ошибка: требуется ключевое слово SET")
                 continue
 
-            set_str = cmd_str[set_idx + 3:where_idx].strip() if where_idx != -1 else cmd_str[set_idx + 3:].strip()
-            where_str = cmd_str[where_idx + 5:].strip() if where_idx != -1 else ""
+            if where_pos != -1:
+                set_str = cmd_str[set_pos + 3 : where_pos].strip()
+                where_str = cmd_str[where_pos + 5 :].strip()
+            else:
+                set_str = cmd_str[set_pos + 3 :].strip()
+                where_str = ""
 
             try:
                 set_clause = parse_set_clause(set_str)
                 where_clause = parse_multiple_conditions(where_str, parse_where_clause) if where_str else {}
-            except ValueError as e:
-                print(f"Ошибка парсинга: {e}")
+            except Exception as e:
+                print(f"Ошибка парсинга SET/WHERE: {e}")
                 continue
 
             table_data = load_table_data(table_name)
-            table_data = update(table_data, set_clause, where_clause)
-            save_table_data(table_name, table_data)
-            print(f"Обновлено записей в таблице '{table_name}'.")
+            new_data = update(table_data, set_clause, where_clause)
+            save_table_data(table_name, new_data)
+            print("Записи обновлены.")
             continue
 
         elif cmd == "delete":
-            if len(args) < 3:
+            if len(args) < 2:
                 print("Ошибка: используйте delete <table> WHERE column = value")
                 continue
 
             table_name = args[0]
-
-            if table_name not in meta["tables"]:
+            if table_name not in meta.get("tables", {}):
                 print(f"Ошибка: таблица '{table_name}' не существует.")
                 continue
 
-            where_str = " ".join(args[1:])
+            where_str = " ".join(args[1:]).strip()
             if where_str.upper().startswith("WHERE"):
                 where_str = where_str[5:].strip()
 
@@ -247,7 +276,7 @@ def run() -> None:
             table_data = load_table_data(table_name)
             table_data = delete(table_data, where_clause)
             save_table_data(table_name, table_data)
-            print(f"Удалено записей из таблицы '{table_name}'.")
+            print("Записи удалены.")
             continue
 
         elif cmd == "insert":
@@ -264,7 +293,9 @@ def run() -> None:
 
             try:
                 table_data = insert(meta, table_name, values)
+                save_table_data(table_name, table_data)
                 print("Запись добавлена.")
+
             except Exception as e:
                 print(f"Ошибка вставки: {e}")
 
