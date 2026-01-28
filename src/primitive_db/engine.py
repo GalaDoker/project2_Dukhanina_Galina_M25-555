@@ -2,8 +2,9 @@
 
 import shlex
 
-from src.primitive_db.utils import load_metadata, save_metadata
-from src.primitive_db.core import _ensure_schema, create_table, drop_table
+from src.primitive_db.utils import load_metadata, save_metadata, load_table_data, save_table_data
+from src.primitive_db.core import _ensure_schema, create_table, drop_table, insert
+from src.primitive_db.parser import parse_where_clause, parse_set_clause, parse_multiple_conditions
 
 META_PATH = "db_meta.json"
 
@@ -15,7 +16,7 @@ def _print_help() -> None:
     print("<command> create <table> <col:type> [<col:type> ...] - создать таблицу (ID:int добавляется автоматически)")
     print("<command> drop <table> - удалить таблицу")
     print("<command> describe <table> - показать структуру таблицы")
-
+    print("<command> insert <table> <v1> <v2> ... - добавить запись")
 
 def _cmd_tables(meta: dict) -> None:
     tables = sorted(meta["tables"].keys())
@@ -116,14 +117,14 @@ def run() -> None:
             if not ok:
                 continue
 
-            old_meta = meta
-            meta = create_table(meta, table_name, cols)
+            existed_before = table_name in meta.get("tables", {})
 
-            if "tables" in meta and table_name in meta["tables"]:
-                save_metadata(META_PATH, meta)
+            meta2 = create_table(meta, table_name, cols)
+
+            created_now = (not existed_before) and (table_name in meta2.get("tables", {}))
+            if created_now:
+                save_metadata(META_PATH, meta2)
                 print(f"Таблица '{table_name}' создана.")
-            else:
-                meta = old_meta
 
             continue
 
@@ -143,6 +144,129 @@ def run() -> None:
                 print(f"Таблица '{table_name}' удалена.")
             else:
                 meta = old_meta
+
+            continue
+
+        elif cmd == "select":
+
+            if len(args) < 1:
+                print("Ошибка: используйте select <table> [WHERE column = value]")
+                continue
+
+            table_name = args[0]
+
+            if table_name not in meta["tables"]:
+                print(f"Ошибка: таблица '{table_name}' не существует.")
+                continue
+
+            table_data = load_table_data(table_name)
+
+            where_clause = None
+            if len(args) > 1:
+                where_str = " ".join(args[1:])
+
+                if where_str.upper().startswith("WHERE"):
+                    where_str = where_str[5:].strip()
+                try:
+                    where_clause = parse_multiple_conditions(where_str, parse_where_clause)
+                except ValueError as e:
+                    print(f"Ошибка парсинга WHERE: {e}")
+                    continue
+
+            result = select(table_data, where_clause)
+
+            from prettytable import PrettyTable
+
+            if result:
+                cols = list(result[0].keys())
+                pt = PrettyTable(cols)
+                for row in result:
+                    pt.add_row([row.get(col) for col in cols])
+                print(pt)
+            else:
+                print("Записей не найдено.")
+
+            continue
+
+        elif cmd == "update":
+            if len(args) < 5:
+                print("Ошибка: используйте update <table> SET column = value WHERE column = value")
+                continue
+
+            table_name = args[0]
+
+            if table_name not in meta["tables"]:
+                print(f"Ошибка: таблица '{table_name}' не существует.")
+                continue
+
+            cmd_str = " ".join(args)
+            set_idx = cmd_str.upper().find("SET")
+            where_idx = cmd_str.upper().find("WHERE")
+
+            if set_idx == -1:
+                print("Ошибка: не найдено ключевое слово SET")
+                continue
+
+            set_str = cmd_str[set_idx + 3:where_idx].strip() if where_idx != -1 else cmd_str[set_idx + 3:].strip()
+            where_str = cmd_str[where_idx + 5:].strip() if where_idx != -1 else ""
+
+            try:
+                set_clause = parse_set_clause(set_str)
+                where_clause = parse_multiple_conditions(where_str, parse_where_clause) if where_str else {}
+            except ValueError as e:
+                print(f"Ошибка парсинга: {e}")
+                continue
+
+            table_data = load_table_data(table_name)
+            table_data = update(table_data, set_clause, where_clause)
+            save_table_data(table_name, table_data)
+            print(f"Обновлено записей в таблице '{table_name}'.")
+            continue
+
+        elif cmd == "delete":
+            if len(args) < 3:
+                print("Ошибка: используйте delete <table> WHERE column = value")
+                continue
+
+            table_name = args[0]
+
+            if table_name not in meta["tables"]:
+                print(f"Ошибка: таблица '{table_name}' не существует.")
+                continue
+
+            where_str = " ".join(args[1:])
+            if where_str.upper().startswith("WHERE"):
+                where_str = where_str[5:].strip()
+
+            try:
+                where_clause = parse_multiple_conditions(where_str, parse_where_clause)
+            except ValueError as e:
+                print(f"Ошибка парсинга WHERE: {e}")
+                continue
+
+            table_data = load_table_data(table_name)
+            table_data = delete(table_data, where_clause)
+            save_table_data(table_name, table_data)
+            print(f"Удалено записей из таблицы '{table_name}'.")
+            continue
+
+        elif cmd == "insert":
+            if len(args) < 2:
+                print("Ошибка: используйте insert <table> <v1> <v2> ...")
+                continue
+
+            table_name = args[0]
+            values = args[1:]
+
+            if table_name not in meta.get("tables", {}):
+                print(f"Ошибка: таблица '{table_name}' не существует.")
+                continue
+
+            try:
+                table_data = insert(meta, table_name, values)
+                print("Запись добавлена.")
+            except Exception as e:
+                print(f"Ошибка вставки: {e}")
 
             continue
 
