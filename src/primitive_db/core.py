@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from src.primitive_db.utils import load_metadata, save_metadata
+from src.primitive_db.utils import load_table_data, save_table_data
 
 META_PATH = "db_meta.json"
 ALLOWED_TYPES = {"int", "str", "bool"}
@@ -109,6 +110,120 @@ def drop_table(metadata: dict, table_name: str) -> dict:
     del metadata["tables"][table_name]
     return metadata
 
+
+TYPE_CASTERS = {
+    "int": int,
+    "str": str,
+    "bool": lambda v: bool(int(v)) if isinstance(v, (int, str)) else bool(v),
+}
+
+
+def _get_table_schema(metadata: dict, table_name: str):
+    tables = metadata.get("tables", {})
+    if table_name not in tables:
+        raise ValueError(f"Таблица '{table_name}' не существует.")
+
+    raw_cols = tables[table_name].get("columns", [])
+    cols = []
+
+    for c in raw_cols:
+        if isinstance(c, dict):
+            name = c.get("name")
+            typ = c.get("type")
+        elif isinstance(c, (tuple, list)) and len(c) == 2:
+            name, typ = c[0], c[1]
+        elif isinstance(c, str) and ":" in c:
+            name, typ = c.split(":", 1)
+            name = name.strip()
+            typ = typ.strip()
+        else:
+            continue
+
+        cols.append({"name": name, "type": typ})
+
+    return cols
+
+
+def _row_matches_where(row: dict, where_clause: dict | None) -> bool:
+    if not where_clause:
+        return True
+    for key, expected in where_clause.items():
+        if key not in row:
+            return False
+        if row[key] != expected:
+            return False
+    return True
+
+def insert(metadata: dict, table_name: str, values: list):
+    cols = _get_table_schema(metadata, table_name)
+
+    if not cols or cols[0]["name"] != "ID":
+        raise ValueError("Первая колонка должна быть ID:int")
+
+    data_cols = cols[1:]  
+
+    if len(values) != len(data_cols):
+        raise ValueError(
+            f"Ожидалось {len(data_cols)} значений, получено {len(values)}."
+        )
+
+    table_data = load_table_data(table_name)
+
+    if table_data:
+        max_id = max(row.get("ID", 0) for row in table_data)
+    else:
+        max_id = 0
+    new_id = max_id + 1
+
+    row = {"ID": new_id}
+    for (col_def, raw_value) in zip(data_cols, values):
+        col_name = col_def["name"]
+        col_type = col_def["type"]
+
+        if col_type not in TYPE_CASTERS:
+            raise ValueError(f"Неподдерживаемый тип '{col_type}' для колонки '{col_name}'.")
+
+        caster = TYPE_CASTERS[col_type]
+        try:
+            value = caster(raw_value)
+        except Exception as exc:
+            raise ValueError(
+                f"Неверное значение '{raw_value}' для колонки '{col_name}:{col_type}': {exc}"
+            ) from exc
+
+        row[col_name] = value
+
+    table_data.append(row)
+    save_table_data(table_name, table_data)
+    return table_data
+
+def select(table_data: list[dict], where_clause: dict | None = None) -> list[dict]:
+    if not where_clause:
+        return list(table_data)
+
+    result = []
+    for row in table_data:
+        if _row_matches_where(row, where_clause):
+            result.append(row)
+    return result
+
+def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list[dict]:
+    if not set_clause:
+        return table_data
+
+    for row in table_data:
+        if _row_matches_where(row, where_clause):
+            for key, value in set_clause.items():
+                row[key] = value
+
+    return table_data
+
+def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
+    if not where_clause:
+        return table_data
+
+    new_data = [row for row in table_data if not _row_matches_where(row, where_clause)]
+    return new_data
 
 def describe_table(filepath: str, table_name: str) -> dict:
     meta = _ensure_schema(load_metadata(filepath))
