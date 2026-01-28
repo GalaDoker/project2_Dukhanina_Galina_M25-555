@@ -15,8 +15,33 @@
 - **`describe <table>`** — показать структуру таблицы
 - **`drop <table>`** — удалить таблицу
 
-## Демонстрация (asciinema)
+## CRUD-операции
 
-Пример установки пакета, запуска БД и управления таблицами:
+Команды для работы с данными таблиц (записи хранятся в `data/<table>.json`).
+
+- **`insert <table> <v1> <v2> ...`** — добавить запись
+  Пример: `insert users "Alice" 25 true`
+
+- **`select <table> [WHERE <условие>]`** — вывести записи (красивый вывод через prettytable)
+  Примеры:
+  - `select users`
+  - `select users WHERE age = 25`
+  - `select users WHERE name = "Alice"`
+
+- **`update <table> SET <поле = значение> WHERE <условие>`** — обновить записи
+  Пример: `update users SET age = 26 WHERE name = "Alice"`
+
+- **`delete <table> WHERE <условие>`** — удалить записи
+  Пример: `delete users WHERE name = "Bob"`
+
+### Важно
+- Строковые значения **всегда** указывайте в кавычках: `"Alice"`.
+- Разрешённые типы столбцов: `int`, `str`, `bool`.
+
+## Демонстрация установки пакета, запуска БД и управления таблицами:
 
 https://asciinema.org/a/VJHVT7PnxENmTSHL 
+
+## Демонстрация CRUD
+
+https://asciinema.org/a/Wj1L8Qn3tyBiI3cx

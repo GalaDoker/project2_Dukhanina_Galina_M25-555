@@ -110,11 +110,23 @@ def drop_table(metadata: dict, table_name: str) -> dict:
     del metadata["tables"][table_name]
     return metadata
 
+def _to_bool(v):
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, int):
+        return v != 0
+    if isinstance(v, str):
+        s = v.strip().lower()
+        if s in ("true", "t", "yes", "y", "1"):
+            return True
+        if s in ("false", "f", "no", "n", "0"):
+            return False
+    raise ValueError(f"Нельзя привести к bool: {v!r}")
 
 TYPE_CASTERS = {
     "int": int,
     "str": str,
-    "bool": lambda v: bool(int(v)) if isinstance(v, (int, str)) else bool(v),
+    "bool": _to_bool,
 }
 
 
