@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
+
 from src.primitive_db.utils import load_metadata, save_metadata
 
-
 META_PATH = "db_meta.json"
+ALLOWED_TYPES = {"int", "str", "bool"}
 
 
 def _ensure_schema(meta: dict) -> dict:
-    """Гарантирует базовую структуру метаданных."""
     if not isinstance(meta, dict):
         meta = {}
     if "tables" not in meta or not isinstance(meta["tables"], dict):
@@ -24,33 +24,92 @@ def table_exists(name: str, filepath: str = META_PATH) -> bool:
     return name in meta["tables"]
 
 
-def create_table(name: str, columns: list[str], filepath: str = META_PATH) -> None:
-    if not name or not isinstance(name, str):
-        raise ValueError("Имя таблицы должно быть непустой строкой.")
-    if not columns or not isinstance(columns, list):
-        raise ValueError("Колонки должны быть списком непустых строк.")
-    if any((not isinstance(c, str) or not c.strip()) for c in columns):
-        raise ValueError("Каждая колонка должна быть непустой строкой.")
+def create_table(metadata: dict, table_name: str, columns: list) -> dict:
+    
+    metadata = _ensure_schema(metadata)
 
+    if not isinstance(table_name, str) or not table_name.strip():
+        print("Ошибка: имя таблицы должно быть непустой строкой.")
+        return metadata
+
+    table_name = table_name.strip()
+
+    if table_name in metadata["tables"]:
+        print(f"Ошибка: таблица '{table_name}' уже существует.")
+        return metadata
+
+    if not isinstance(columns, list):
+        print("Ошибка: columns должен быть списком.")
+        return metadata
+
+    parsed_columns = []
+
+    parsed_columns.append({"name": "ID", "type": "int"})
+
+    for col in columns:
+        if isinstance(col, (tuple, list)) and len(col) == 2:
+            col_name, col_type = col[0], col[1]
+
+        elif isinstance(col, dict) and "name" in col and "type" in col:
+            col_name, col_type = col["name"], col["type"]
+
+        else:
+            print(
+                "Ошибка: неверный формат колонки. "
+                "Ожидается ('name','type') или {'name':..., 'type':...}."
+            )
+            return metadata
+
+        if not isinstance(col_name, str) or not col_name.strip():
+            print("Ошибка: имя колонки должно быть непустой строкой.")
+            return metadata
+
+        col_name = col_name.strip()
+
+        if col_name.upper() == "ID":
+            print("Ошибка: столбец ID добавляется автоматически, не указывайте его вручную.")
+            return metadata
+
+        if not isinstance(col_type, str) or not col_type.strip():
+            print("Ошибка: тип колонки должен быть непустой строкой.")
+            return metadata
+
+        col_type = col_type.strip()
+
+        if col_type not in ALLOWED_TYPES:
+            print("Ошибка: неверный тип данных. Разрешены только int, str, bool.")
+            return metadata
+
+        parsed_columns.append({"name": col_name, "type": col_type})
+
+    metadata["tables"][table_name] = {"columns": parsed_columns}
+    return metadata
+
+
+def add_table(filepath: str, table_name: str, columns: list) -> dict:
     meta = _ensure_schema(load_metadata(filepath))
-    if name in meta["tables"]:
-        raise ValueError(f"Таблица '{name}' уже существует.")
-
-    meta["tables"][name] = {"columns": [c.strip() for c in columns]}
+    meta = create_table(meta, table_name, columns)
     save_metadata(filepath, meta)
+    return meta
 
 
-def drop_table(name: str, filepath: str = META_PATH) -> None:
+def drop_table(filepath: str, table_name: str) -> dict:
     meta = _ensure_schema(load_metadata(filepath))
-    if name not in meta["tables"]:
-        raise ValueError(f"Таблица '{name}' не существует.")
 
-    del meta["tables"][name]
+    if table_name not in meta["tables"]:
+        print(f"Ошибка: таблица '{table_name}' не существует.")
+        return meta
+
+    del meta["tables"][table_name]
     save_metadata(filepath, meta)
+    return meta
 
 
-def describe_table(name: str, filepath: str = META_PATH) -> dict:
+def describe_table(filepath: str, table_name: str) -> dict:
     meta = _ensure_schema(load_metadata(filepath))
-    if name not in meta["tables"]:
-        raise ValueError(f"Таблица '{name}' не существует.")
-    return meta["tables"][name]
+
+    if table_name not in meta["tables"]:
+        print(f"Ошибка: таблица '{table_name}' не существует.")
+        return {}
+
+    return meta["tables"][table_name]
