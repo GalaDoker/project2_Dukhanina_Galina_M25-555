@@ -93,16 +93,21 @@ def add_table(filepath: str, table_name: str, columns: list) -> dict:
     return meta
 
 
-def drop_table(filepath: str, table_name: str) -> dict:
-    meta = _ensure_schema(load_metadata(filepath))
+def drop_table(metadata: dict, table_name: str) -> dict:
+    metadata = _ensure_schema(metadata)
 
-    if table_name not in meta["tables"]:
+    if not isinstance(table_name, str) or not table_name.strip():
+        print("Ошибка: имя таблицы должно быть непустой строкой.")
+        return metadata
+
+    table_name = table_name.strip()
+
+    if table_name not in metadata["tables"]:
         print(f"Ошибка: таблица '{table_name}' не существует.")
-        return meta
+        return metadata
 
-    del meta["tables"][table_name]
-    save_metadata(filepath, meta)
-    return meta
+    del metadata["tables"][table_name]
+    return metadata
 
 
 def describe_table(filepath: str, table_name: str) -> dict:
