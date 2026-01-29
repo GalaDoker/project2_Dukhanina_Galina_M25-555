@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
 
 import functools
+import time
 
+def log_time(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.monotonic()
+        result = func(*args, **kwargs)
+        duration = time.monotonic() - start
+        print(f"Функция {func.__name__} выполнилась за {duration:.3f} секунд.")
+        return result
+    return wrapper
 
 def handle_db_errors(func):
     @functools.wraps(func)

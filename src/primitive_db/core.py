@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from src.decorators import handle_db_errors, confirm_action
+from src.decorators import handle_db_errors, confirm_action, log_time
 from src.primitive_db.utils import load_metadata, save_metadata
 from src.primitive_db.utils import load_table_data, save_table_data
 
@@ -158,6 +158,7 @@ def _row_matches_where(row: dict, where_clause: dict | None) -> bool:
             return False
     return True
 
+@log_time
 @handle_db_errors
 def insert(metadata: dict, table_name: str, values: list):
     cols = _get_table_schema(metadata, table_name)
@@ -202,6 +203,7 @@ def insert(metadata: dict, table_name: str, values: list):
     save_table_data(table_name, table_data)
     return table_data
 
+@log_time
 @handle_db_errors
 def select(table_data: list[dict], where_clause: dict | None = None) -> list[dict]:
     if not where_clause:
