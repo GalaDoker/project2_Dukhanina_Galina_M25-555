@@ -8,6 +8,7 @@ from src.primitive_db.utils import (
     save_metadata,
     load_table_data,
     save_table_data,
+    create_cacher,
 )
 
 from src.primitive_db.core import (
@@ -25,6 +26,8 @@ from src.primitive_db.parser import (
     parse_set_clause,
     parse_multiple_conditions,
 )
+
+select_cacher = create_cacher()
 
 META_PATH = "db_meta.json"
 
@@ -198,7 +201,11 @@ def run() -> None:
                     print(f"Ошибка парсинга WHERE: {e}")
                     continue
 
-            result = select(table_data, where_clause)
+            cache_key = (table_name, frozenset(where_clause.items()) if where_clause else (table_name, frozenset()))
+            result = select_cacher(
+                cache_key,
+                lambda: select(table_data, where_clause),
+            )
 
             if not result:
                 print("Записей не найдено.")
