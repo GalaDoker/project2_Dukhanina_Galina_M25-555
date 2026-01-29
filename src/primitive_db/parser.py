@@ -9,12 +9,12 @@ def _parse_value(value_str: str):
     if (value_str.startswith('"') and value_str.endswith('"')) or \
        (value_str.startswith("'") and value_str.endswith("'")):
         return value_str[1:-1]
-    
+
     if value_str.lower() == "true":
         return True
     if value_str.lower() == "false":
         return False
-    
+
     try:
         return int(value_str)
     except ValueError:
@@ -36,12 +36,12 @@ def parse_where_clause(where_str: str) -> dict:
 
     column = parts[0].strip()
     value_str = parts[1].strip()
-    
+
     if not column:
         raise ValueError("Имя колонки не может быть пустым")
-    
+
     value = _parse_value(value_str)
-    
+
     return {column: value}
 
 
@@ -60,12 +60,12 @@ def parse_set_clause(set_str: str) -> dict:
 
     column = parts[0].strip()
     value_str = parts[1].strip()
-    
+
     if not column:
         raise ValueError("Имя колонки не может быть пустым")
-    
+
     value = _parse_value(value_str)
-    
+
     return {column: value}
 
 
@@ -76,11 +76,11 @@ def parse_multiple_conditions(conditions_str: str, parser_func) -> dict:
     result = {}
 
     parts = re.split(r'\s+AND\s+', conditions_str, flags=re.IGNORECASE)
-    
+
     for part in parts:
         part = part.strip()
         if part:
             parsed = parser_func(part)
             result.update(parsed)
-    
+
     return result

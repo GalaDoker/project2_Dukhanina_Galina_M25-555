@@ -3,6 +3,7 @@
 import functools
 import time
 
+
 def log_time(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):

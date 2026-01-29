@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
-from src.decorators import handle_db_errors, confirm_action, log_time
-from src.primitive_db.utils import load_metadata, save_metadata
-from src.primitive_db.utils import load_table_data, save_table_data
+from src.decorators import confirm_action, handle_db_errors, log_time
+from src.primitive_db.utils import (
+    load_metadata,
+    load_table_data,
+    save_metadata,
+    save_table_data,
+)
 
 META_PATH = "db_meta.json"
 ALLOWED_TYPES = {"int", "str", "bool"}

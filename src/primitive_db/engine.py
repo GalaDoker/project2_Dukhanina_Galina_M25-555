@@ -1,30 +1,29 @@
 #!/usr/bin/env python3
 
 import shlex
-from prettytable import PrettyTable
 
-from src.primitive_db.utils import (
-    load_metadata,
-    save_metadata,
-    load_table_data,
-    save_table_data,
-    create_cacher,
-)
+from prettytable import PrettyTable
 
 from src.primitive_db.core import (
     _ensure_schema,
     create_table,
+    delete,
     drop_table,
     insert,
     select,
     update,
-    delete,
 )
-
 from src.primitive_db.parser import (
-    parse_where_clause,
-    parse_set_clause,
     parse_multiple_conditions,
+    parse_set_clause,
+    parse_where_clause,
+)
+from src.primitive_db.utils import (
+    create_cacher,
+    load_metadata,
+    load_table_data,
+    save_metadata,
+    save_table_data,
 )
 
 select_cacher = create_cacher()
