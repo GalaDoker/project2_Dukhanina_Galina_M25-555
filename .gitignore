@@ -6,7 +6,7 @@ __pycache__/
 *.pyd
 .Python
 db_meta.json
+data/
 demo.cast
-data/*.json
 crud.cast
 test_confirm.py

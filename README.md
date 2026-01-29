@@ -1,3 +1,35 @@
+# Primitive DB
+
+Консольное приложение для работы с простой JSON-базой данных: создание таблиц, вставка, выборка, обновление и удаление записей. Метаданные хранятся в `db_meta.json`, данные таблиц — в `data/<table>.json`.
+
+## Установка и запуск
+
+**Установка зависимостей:**
+
+```bash
+poetry install
+```
+
+или
+
+```bash
+make install
+```
+
+**Запуск приложения:**
+
+```bash
+poetry run database
+```
+
+или
+
+```bash
+make run
+```
+
+После запуска вводите команды в интерактивном режиме (справка: `help`).
+
 ## Управление таблицами
 
 Приложение поддерживает команды для управления таблицами и их структурой.  
@@ -58,14 +90,16 @@
 
 Ответ **`y`** — выполнить команду, любой другой ввод или **`n`** — отмена. В неинтерактивном режиме (например, при перенаправлении ввода) операция отменяется автоматически.
 
-## Демонстрация установки пакета, запуска БД и управления таблицами:
+## Демонстрация (полный сценарий)
 
-https://asciinema.org/a/VJHVT7PnxENmTSHL 
+Ниже — встроенная запись asciinema с полным сценарием: запуск приложения, создание таблицы, добавление записей, чтение (select), обновление (update), удаление записей (delete) и удаление таблицы (drop).
+
+[![asciicast](https://asciinema.org/a/VJHVT7PnxENmTSHL.svg)](https://asciinema.org/a/VJHVT7PnxENmTSHL)
 
 ## Демонстрация CRUD
 
-https://asciinema.org/a/Wj1L8Qn3tyBiI3cx
+[![asciicast](https://asciinema.org/a/Wj1L8Qn3tyBiI3cx.svg)](https://asciinema.org/a/Wj1L8Qn3tyBiI3cx)
 
-## Демонстрация декораторов
+## Демонстрация декораторов (подтверждение удаления)
 
-https://asciinema.org/a/EXanbxGHxIRC5wOg 
+[![asciicast](https://asciinema.org/a/EXanbxGHxIRC5wOg.svg)](https://asciinema.org/a/EXanbxGHxIRC5wOg)

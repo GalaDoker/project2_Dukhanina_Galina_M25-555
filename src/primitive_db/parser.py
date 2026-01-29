@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
 
-import re
+
+def _split_by_and(s: str) -> list:
+    """Разбивает строку по ' AND ' (без учёта регистра); пробелы схлопываются в один."""
+    s = " ".join(s.split())
+    parts = []
+    s_lower = s.lower()
+    sep = " and "
+    start = 0
+    while True:
+        idx = s_lower.find(sep, start)
+        if idx == -1:
+            part = s[start:].strip()
+            if part:
+                parts.append(part)
+            break
+        part = s[start:idx].strip()
+        if part:
+            parts.append(part)
+        start = idx + len(sep)
+    return parts
 
 
 def _parse_value(value_str: str):
+    """Преобразует строку в значение: число, bool или строка (в кавычках)."""
     value_str = value_str.strip()
 
     if (value_str.startswith('"') and value_str.endswith('"')) or \
@@ -22,6 +42,7 @@ def _parse_value(value_str: str):
 
 
 def parse_where_clause(where_str: str) -> dict:
+    """Разбирает условие WHERE вида 'column = value' в словарь {column: value}."""
     if not where_str or not where_str.strip():
         return {}
 
@@ -46,6 +67,7 @@ def parse_where_clause(where_str: str) -> dict:
 
 
 def parse_set_clause(set_str: str) -> dict:
+    """Разбирает условие SET вида 'column = value' в словарь {column: value}."""
     if not set_str or not set_str.strip():
         return {}
 
@@ -70,12 +92,13 @@ def parse_set_clause(set_str: str) -> dict:
 
 
 def parse_multiple_conditions(conditions_str: str, parser_func) -> dict:
+    """Разбирает несколько условий через AND и объединяет в один словарь."""
     if not conditions_str or not conditions_str.strip():
         return {}
 
     result = {}
 
-    parts = re.split(r'\s+AND\s+', conditions_str, flags=re.IGNORECASE)
+    parts = _split_by_and(conditions_str)
 
     for part in parts:
         part = part.strip()

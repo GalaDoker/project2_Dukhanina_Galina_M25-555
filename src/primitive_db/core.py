@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from src.decorators import confirm_action, handle_db_errors, log_time
+from src.primitive_db.constants import ALLOWED_TYPES, ID_COLUMN, META_PATH
 from src.primitive_db.utils import (
     load_metadata,
     load_table_data,
@@ -8,11 +9,9 @@ from src.primitive_db.utils import (
     save_table_data,
 )
 
-META_PATH = "db_meta.json"
-ALLOWED_TYPES = {"int", "str", "bool"}
-
 
 def _ensure_schema(meta: dict) -> dict:
+    """Приводит метаданные к виду с ключом 'tables' (словарь)."""
     if not isinstance(meta, dict):
         meta = {}
     if "tables" not in meta or not isinstance(meta["tables"], dict):
@@ -21,17 +20,20 @@ def _ensure_schema(meta: dict) -> dict:
 
 
 def list_tables(filepath: str = META_PATH) -> list[str]:
+    """Возвращает отсортированный список имён таблиц."""
     meta = _ensure_schema(load_metadata(filepath))
     return sorted(meta["tables"].keys())
 
 
 def table_exists(name: str, filepath: str = META_PATH) -> bool:
+    """Проверяет, существует ли таблица с указанным именем."""
     meta = _ensure_schema(load_metadata(filepath))
     return name in meta["tables"]
 
 
 @handle_db_errors
 def create_table(metadata: dict, table_name: str, columns: list) -> dict:
+    """Добавляет новую таблицу в метаданные; колонка ID создаётся автоматически."""
     metadata = _ensure_schema(metadata)
 
     if not isinstance(table_name, str) or not table_name.strip():
@@ -47,7 +49,7 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
 
     parsed_columns = []
 
-    parsed_columns.append({"name": "ID", "type": "int"})
+    parsed_columns.append({"name": ID_COLUMN, "type": "int"})
 
     for col in columns:
         if isinstance(col, (tuple, list)) and len(col) == 2:
@@ -67,7 +69,7 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
 
         col_name = col_name.strip()
 
-        if col_name.upper() == "ID":
+        if col_name.upper() == ID_COLUMN:
             raise ValueError(
                 "Ошибка: столбец ID добавляется автоматически, "
                 "не указывайте его вручную."
@@ -91,6 +93,7 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
 
 
 def add_table(filepath: str, table_name: str, columns: list) -> dict:
+    """Создаёт таблицу и сохраняет обновлённые метаданные в файл."""
     meta = _ensure_schema(load_metadata(filepath))
     meta = create_table(meta, table_name, columns)
     save_metadata(filepath, meta)
@@ -100,6 +103,7 @@ def add_table(filepath: str, table_name: str, columns: list) -> dict:
 @handle_db_errors
 @confirm_action("удаление таблицы")
 def drop_table(metadata: dict, table_name: str) -> dict:
+    """Удаляет таблицу из метаданных."""
     metadata = _ensure_schema(metadata)
 
     if not isinstance(table_name, str) or not table_name.strip():
@@ -115,6 +119,7 @@ def drop_table(metadata: dict, table_name: str) -> dict:
 
 
 def _to_bool(v):
+    """Приводит значение к bool (строка/число/булево)."""
     if isinstance(v, bool):
         return v
     if isinstance(v, int):
@@ -128,6 +133,7 @@ def _to_bool(v):
     raise ValueError(f"Нельзя привести к bool: {v!r}")
 
 
+# Маппинг имён типов на функции приведения значения
 TYPE_CASTERS = {
     "int": int,
     "str": str,
@@ -137,6 +143,7 @@ TYPE_CASTERS = {
 
 @handle_db_errors
 def _get_table_schema(metadata: dict, table_name: str):
+    """Возвращает список описаний колонок таблицы из метаданных."""
     tables = metadata.get("tables", {})
     if table_name not in tables:
         raise ValueError(f"Таблица '{table_name}' не существует.")
@@ -163,6 +170,7 @@ def _get_table_schema(metadata: dict, table_name: str):
 
 
 def _row_matches_where(row: dict, where_clause: dict | None) -> bool:
+    """Проверяет, удовлетворяет ли строка условию WHERE."""
     if not where_clause:
         return True
     for key, expected in where_clause.items():
@@ -176,10 +184,11 @@ def _row_matches_where(row: dict, where_clause: dict | None) -> bool:
 @log_time
 @handle_db_errors
 def insert(metadata: dict, table_name: str, values: list):
+    """Добавляет запись в таблицу с автоинкрементом ID."""
     cols = _get_table_schema(metadata, table_name)
 
-    if not cols or cols[0]["name"] != "ID":
-        raise ValueError("Первая колонка должна быть ID:int")
+    if not cols or cols[0]["name"] != ID_COLUMN:
+        raise ValueError(f"Первая колонка должна быть {ID_COLUMN}:int")
 
     data_cols = cols[1:]
 
@@ -191,12 +200,12 @@ def insert(metadata: dict, table_name: str, values: list):
     table_data = load_table_data(table_name)
 
     if table_data:
-        max_id = max(row.get("ID", 0) for row in table_data)
+        max_id = max(row.get(ID_COLUMN, 0) for row in table_data)
     else:
         max_id = 0
     new_id = max_id + 1
 
-    row = {"ID": new_id}
+    row = {ID_COLUMN: new_id}
     for col_def, raw_value in zip(data_cols, values):
         col_name = col_def["name"]
         col_type = col_def["type"]
@@ -218,6 +227,7 @@ def insert(metadata: dict, table_name: str, values: list):
 @log_time
 @handle_db_errors
 def select(table_data: list[dict], where_clause: dict | None = None) -> list[dict]:
+    """Возвращает строки таблицы, удовлетворяющие WHERE (или все, если условия нет)."""
     if not where_clause:
         return list(table_data)
 
@@ -230,6 +240,7 @@ def select(table_data: list[dict], where_clause: dict | None = None) -> list[dic
 
 @handle_db_errors
 def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list[dict]:
+    """Обновляет поля записей по условию WHERE согласно SET."""
     if not set_clause:
         return table_data
 
@@ -244,6 +255,7 @@ def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list
 @handle_db_errors
 @confirm_action("удаление записей")
 def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
+    """Удаляет записи, удовлетворяющие условию WHERE."""
     if not where_clause:
         return table_data
 
@@ -252,6 +264,7 @@ def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
 
 
 def describe_table(filepath: str, table_name: str) -> dict:
+    """Возвращает описание таблицы (колонки) из метаданных."""
     meta = _ensure_schema(load_metadata(filepath))
 
     if table_name not in meta["tables"]:

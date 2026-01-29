@@ -4,6 +4,8 @@ import shlex
 
 from prettytable import PrettyTable
 
+from src.decorators import create_cacher
+from src.primitive_db.constants import META_PATH
 from src.primitive_db.core import (
     _ensure_schema,
     create_table,
@@ -19,7 +21,6 @@ from src.primitive_db.parser import (
     parse_where_clause,
 )
 from src.primitive_db.utils import (
-    create_cacher,
     load_metadata,
     load_table_data,
     save_metadata,
@@ -28,10 +29,9 @@ from src.primitive_db.utils import (
 
 select_cacher = create_cacher()
 
-META_PATH = "db_meta.json"
-
 
 def _print_help() -> None:
+    """Выводит справку по доступным командам."""
     print("<command> exit - выйти из программы")
     print("<command> help - справочная информация")
     print("<command> tables - список таблиц")
@@ -51,6 +51,7 @@ def _print_help() -> None:
 
 
 def _cmd_tables(meta: dict) -> None:
+    """Обрабатывает команду tables: выводит список таблиц."""
     tables = sorted(meta["tables"].keys())
     if not tables:
         print("Таблиц пока нет.")
@@ -60,6 +61,7 @@ def _cmd_tables(meta: dict) -> None:
 
 
 def _cmd_describe(meta: dict, table_name: str) -> None:
+    """Обрабатывает команду describe: выводит структуру таблицы."""
     if table_name not in meta["tables"]:
         print(f"Ошибка: таблица '{table_name}' не существует.")
         return
@@ -88,6 +90,7 @@ def _cmd_describe(meta: dict, table_name: str) -> None:
 
 
 def welcome() -> None:
+    """Приветствие и справка, затем запуск основного цикла."""
     print("Первая попытка запустить проект!")
     print("***")
     _print_help()
@@ -95,6 +98,7 @@ def welcome() -> None:
 
 
 def run() -> None:
+    """Основной цикл: чтение команд, разбор и вызов обработчиков."""
     while True:
         meta = _ensure_schema(load_metadata(META_PATH))
 

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "project2_Dukhanina_M25-555"
 version = "0.1.0"
-description = ""
+description = "Консольное приложение для работы с JSON-базой данных: таблицы, CRUD, обработка ошибок и подтверждение действий"
 authors = ["GalaDoker <galadoker44@mail.ru>"]
 readme = "README.md"
 packages = [
