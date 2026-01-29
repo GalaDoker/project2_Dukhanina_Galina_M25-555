@@ -48,3 +48,12 @@ def save_table_data(table_name: str, data) -> None:
 
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def delete_table_data_file(table_name: str) -> None:
+    """Удаляет файл данных таблицы, если он существует (при drop таблицы)."""
+    _ensure_data_dir()
+    filename = f"{table_name}{TABLE_FILE_EXT}"
+    filepath = os.path.join(DATA_DIR, filename)
+    if os.path.isfile(filepath):
+        os.remove(filepath)

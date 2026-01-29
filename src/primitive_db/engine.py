@@ -21,6 +21,7 @@ from src.primitive_db.parser import (
     parse_where_clause,
 )
 from src.primitive_db.utils import (
+    delete_table_data_file,
     load_metadata,
     load_table_data,
     save_metadata,
@@ -189,6 +190,7 @@ def run() -> None:
                 and table_name not in new_meta["tables"]
             ):
                 save_metadata(META_PATH, new_meta)
+                delete_table_data_file(table_name)
                 print(f"Таблица '{table_name}' удалена.")
             elif not existed:
                 print(f"Таблица '{table_name}' не существовала.")
@@ -275,13 +277,17 @@ def run() -> None:
                 where_str = ""
 
             try:
-                set_clause = parse_set_clause(set_str)
+                set_clause = (
+                    parse_multiple_conditions(set_str, parse_set_clause)
+                    if set_str
+                    else {}
+                )
                 where_clause = (
                     parse_multiple_conditions(where_str, parse_where_clause)
                     if where_str
                     else {}
                 )
-            except Exception as e:
+            except ValueError as e:
                 print(f"Ошибка парсинга SET/WHERE: {e}")
                 continue
 
@@ -337,13 +343,9 @@ def run() -> None:
                 print(f"Ошибка: таблица '{table_name}' не существует.")
                 continue
 
-            try:
-                table_data = insert(meta, table_name, values)
-                save_table_data(table_name, table_data)
+            result = insert(meta, table_name, values)
+            if result:
                 print("Запись добавлена.")
-
-            except Exception as e:
-                print(f"Ошибка вставки: {e}")
 
             continue
 

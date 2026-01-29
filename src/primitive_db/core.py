@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 
 from src.decorators import confirm_action, handle_db_errors, log_time
-from src.primitive_db.constants import ALLOWED_TYPES, ID_COLUMN, META_PATH
+from src.primitive_db.constants import (
+    ALLOWED_TYPES,
+    ID_COLUMN,
+    ID_COLUMN_TYPE,
+    META_PATH,
+)
 from src.primitive_db.utils import (
     load_metadata,
     load_table_data,
@@ -49,7 +54,7 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
 
     parsed_columns = []
 
-    parsed_columns.append({"name": ID_COLUMN, "type": "int"})
+    parsed_columns.append({"name": ID_COLUMN, "type": ID_COLUMN_TYPE})
 
     for col in columns:
         if isinstance(col, (tuple, list)) and len(col) == 2:
