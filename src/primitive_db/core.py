@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from src.decorators import handle_db_errors
+from src.decorators import handle_db_errors, confirm_action
 from src.primitive_db.utils import load_metadata, save_metadata
 from src.primitive_db.utils import load_table_data, save_table_data
 
@@ -87,6 +87,7 @@ def add_table(filepath: str, table_name: str, columns: list) -> dict:
     return meta
 
 @handle_db_errors
+@confirm_action("удаление таблицы")
 def drop_table(metadata: dict, table_name: str) -> dict:
     metadata = _ensure_schema(metadata)
 
@@ -225,6 +226,7 @@ def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list
     return table_data
 
 @handle_db_errors
+@confirm_action("удаление таблицы")
 def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
     if not where_clause:
         return table_data

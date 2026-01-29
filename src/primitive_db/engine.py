@@ -158,16 +158,18 @@ def run() -> None:
                 continue
 
             table_name = args[0]
-            existed = "tables" in meta and table_name in meta["tables"]
+            existed = "tables" in meta and table_name in meta.get("tables", {})
 
-            old_meta = meta
-            meta = drop_table(meta, table_name)
+            new_meta = drop_table(meta, table_name)
 
-            if existed and "tables" in meta and table_name not in meta["tables"]:
-                save_metadata(META_PATH, meta)
+            if new_meta is None:
+                continue
+
+            if existed and "tables" in new_meta and table_name not in new_meta["tables"]:
+                save_metadata(META_PATH, new_meta)
                 print(f"Таблица '{table_name}' удалена.")
-            else:
-                meta = old_meta
+            elif not existed:
+                print(f"Таблица '{table_name}' не существовала.")
 
             continue
 
@@ -274,8 +276,16 @@ def run() -> None:
                 continue
 
             table_data = load_table_data(table_name)
-            table_data = delete(table_data, where_clause)
-            save_table_data(table_name, table_data)
+            new_data = delete(table_data, where_clause)
+
+            if new_data is None:
+                continue
+
+            if not isinstance(new_data, list):
+                print("Ошибка: функция delete вернула неверный тип данных.")
+                continue
+
+            save_table_data(table_name, new_data)
             print("Записи удалены.")
             continue
 
