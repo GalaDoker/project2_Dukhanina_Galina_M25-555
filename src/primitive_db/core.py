@@ -65,7 +65,8 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
 
         if col_name.upper() == "ID":
             raise ValueError(
-                "Ошибка: столбец ID добавляется автоматически, не указывайте его вручную."
+                "Ошибка: столбец ID добавляется автоматически, "
+                "не указывайте его вручную."
             )
 
         if not isinstance(col_type, str) or not col_type.strip():
@@ -75,7 +76,8 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
 
         if col_type not in ALLOWED_TYPES:
             raise ValueError(
-                "Ошибка: неверный тип данных. Разрешены только int, str, bool."
+                "Ошибка: неверный тип данных. "
+                "Разрешены только int, str, bool."
             )
 
         parsed_columns.append({"name": col_name, "type": col_type})

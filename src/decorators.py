@@ -46,7 +46,8 @@ def confirm_action(action_name: str):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
-                msg = f'Вы уверены, что хотите выполнить "{action_name}"? [y/n]: '
+                prompt = 'Вы уверены, что хотите выполнить "{}"? [y/n]: '
+                msg = prompt.format(action_name)
                 response = input(msg).strip().lower()
             except EOFError:
                 print("Операция отменена (неинтерактивный режим).")
