@@ -25,9 +25,9 @@ def table_exists(name: str, filepath: str = META_PATH) -> bool:
     meta = _ensure_schema(load_metadata(filepath))
     return name in meta["tables"]
 
+
 @handle_db_errors
 def create_table(metadata: dict, table_name: str, columns: list) -> dict:
-    
     metadata = _ensure_schema(metadata)
 
     if not isinstance(table_name, str) or not table_name.strip():
@@ -86,6 +86,7 @@ def add_table(filepath: str, table_name: str, columns: list) -> dict:
     save_metadata(filepath, meta)
     return meta
 
+
 @handle_db_errors
 @confirm_action("удаление таблицы")
 def drop_table(metadata: dict, table_name: str) -> dict:
@@ -102,6 +103,7 @@ def drop_table(metadata: dict, table_name: str) -> dict:
     del metadata["tables"][table_name]
     return metadata
 
+
 def _to_bool(v):
     if isinstance(v, bool):
         return v
@@ -115,11 +117,13 @@ def _to_bool(v):
             return False
     raise ValueError(f"Нельзя привести к bool: {v!r}")
 
+
 TYPE_CASTERS = {
     "int": int,
     "str": str,
     "bool": _to_bool,
 }
+
 
 @handle_db_errors
 def _get_table_schema(metadata: dict, table_name: str):
@@ -158,6 +162,7 @@ def _row_matches_where(row: dict, where_clause: dict | None) -> bool:
             return False
     return True
 
+
 @log_time
 @handle_db_errors
 def insert(metadata: dict, table_name: str, values: list):
@@ -190,18 +195,13 @@ def insert(metadata: dict, table_name: str, values: list):
             raise ValueError(f"Неподдерживаемый тип '{col_type}' для колонки '{col_name}'.")
 
         caster = TYPE_CASTERS[col_type]
-        try:
-            value = caster(raw_value)
-        except Exception as exc:
-            raise ValueError(
-                f"Неверное значение '{raw_value}' для колонки '{col_name}:{col_type}': {exc}"
-            ) from exc
-
+        value = caster(raw_value)
         row[col_name] = value
 
     table_data.append(row)
     save_table_data(table_name, table_data)
     return table_data
+
 
 @log_time
 @handle_db_errors
@@ -215,6 +215,7 @@ def select(table_data: list[dict], where_clause: dict | None = None) -> list[dic
             result.append(row)
     return result
 
+
 @handle_db_errors
 def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list[dict]:
     if not set_clause:
@@ -227,14 +228,16 @@ def update(table_data: list[dict], set_clause: dict, where_clause: dict) -> list
 
     return table_data
 
+
 @handle_db_errors
-@confirm_action("удаление таблицы")
+@confirm_action("удаление записей")
 def delete(table_data: list[dict], where_clause: dict) -> list[dict]:
     if not where_clause:
         return table_data
 
     new_data = [row for row in table_data if not _row_matches_where(row, where_clause)]
     return new_data
+
 
 def describe_table(filepath: str, table_name: str) -> dict:
     meta = _ensure_schema(load_metadata(filepath))

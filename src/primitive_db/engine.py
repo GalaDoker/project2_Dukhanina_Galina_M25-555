@@ -40,7 +40,6 @@ def _print_help() -> None:
     print("<command> drop <table> - удалить таблицу")
     print("<command> describe <table> - показать структуру таблицы")
     print("<command> insert <table> <v1> <v2> ... - добавить запись")
-    print("<command> insert <table> <v1> <v2> ... - добавить запись")
     print("<command> select <table> [WHERE col = value] - вывести записи")
     print("<command> update <table> SET col = value WHERE col = value - обновить записи")
     print("<command> delete <table> WHERE col = value - удалить записи")
@@ -212,13 +211,11 @@ def run() -> None:
                 continue
 
             if result:
-                  columns = list(result[0].keys())
-                  pt = PrettyTable(columns)
-                  for row in result:
-                      pt.add_row([row.get(c) for c in columns])
-                  print(pt)
-            else:
-                print("Записей не найдено.")
+                columns = list(result[0].keys())
+                pt = PrettyTable(columns)
+                for row in result:
+                    pt.add_row([row.get(c) for c in columns])
+                print(pt)
 
             continue
 
