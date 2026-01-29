@@ -36,12 +36,18 @@ def _print_help() -> None:
     print("<command> exit - выйти из программы")
     print("<command> help - справочная информация")
     print("<command> tables - список таблиц")
-    print("<command> create <table> <col:type> [<col:type> ...] - создать таблицу (ID:int добавляется автоматически)")
+    print(
+        "<command> create <table> <col:type> [<col:type> ...] - "
+        "создать таблицу (ID:int добавляется автоматически)"
+    )
     print("<command> drop <table> - удалить таблицу")
     print("<command> describe <table> - показать структуру таблицы")
     print("<command> insert <table> <v1> <v2> ... - добавить запись")
     print("<command> select <table> [WHERE col = value] - вывести записи")
-    print("<command> update <table> SET col = value WHERE col = value - обновить записи")
+    print(
+        "<command> update <table> SET col = value WHERE col = value - "
+        "обновить записи"
+    )
     print("<command> delete <table> WHERE col = value - удалить записи")
 
 
@@ -136,7 +142,10 @@ def run() -> None:
             ok = True
             for spec in col_specs:
                 if ":" not in spec:
-                    print(f"Ошибка: неверный формат колонки '{spec}'. Нужно name:type (без пробелов)")
+                    print(
+                        f"Ошибка: неверный формат колонки '{spec}'. "
+                        "Нужно name:type (без пробелов)"
+                    )
                     ok = False
                     break
                 name, typ = spec.split(":", 1)
@@ -149,7 +158,9 @@ def run() -> None:
 
             meta2 = create_table(meta, table_name, cols)
 
-            created_now = (not existed_before) and (table_name in meta2.get("tables", {}))
+            created_now = (
+                (not existed_before) and (table_name in meta2.get("tables", {}))
+            )
             if created_now:
                 save_metadata(META_PATH, meta2)
                 print(f"Таблица '{table_name}' создана.")
@@ -169,7 +180,11 @@ def run() -> None:
             if new_meta is None:
                 continue
 
-            if existed and "tables" in new_meta and table_name not in new_meta["tables"]:
+            if (
+                existed
+                and "tables" in new_meta
+                and table_name not in new_meta["tables"]
+            ):
                 save_metadata(META_PATH, new_meta)
                 print(f"Таблица '{table_name}' удалена.")
             elif not existed:
@@ -197,12 +212,17 @@ def run() -> None:
                     where_str = where_str[5:].strip()
 
                 try:
-                    where_clause = parse_multiple_conditions(where_str, parse_where_clause)
+                    where_clause = parse_multiple_conditions(
+                        where_str, parse_where_clause
+                    )
                 except ValueError as e:
                     print(f"Ошибка парсинга WHERE: {e}")
                     continue
 
-            cache_key = (table_name, frozenset(where_clause.items()) if where_clause else (table_name, frozenset()))
+            if where_clause:
+                cache_key = (table_name, frozenset(where_clause.items()))
+            else:
+                cache_key = (table_name, frozenset())
             result = select_cacher(
                 cache_key,
                 lambda: select(table_data, where_clause),
@@ -223,7 +243,10 @@ def run() -> None:
 
         elif cmd == "update":
             if len(args) < 2:
-                print("Ошибка: используйте update <table> SET col = value WHERE col = value")
+                print(
+                    "Ошибка: используйте update <table> SET col = value "
+                    "WHERE col = value"
+                )
                 continue
 
             table_name = args[0]
@@ -250,7 +273,11 @@ def run() -> None:
 
             try:
                 set_clause = parse_set_clause(set_str)
-                where_clause = parse_multiple_conditions(where_str, parse_where_clause) if where_str else {}
+                where_clause = (
+                    parse_multiple_conditions(where_str, parse_where_clause)
+                    if where_str
+                    else {}
+                )
             except Exception as e:
                 print(f"Ошибка парсинга SET/WHERE: {e}")
                 continue

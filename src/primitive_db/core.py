@@ -64,7 +64,9 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
         col_name = col_name.strip()
 
         if col_name.upper() == "ID":
-            raise ValueError("Ошибка: столбец ID добавляется автоматически, не указывайте его вручную.")
+            raise ValueError(
+                "Ошибка: столбец ID добавляется автоматически, не указывайте его вручную."
+            )
 
         if not isinstance(col_type, str) or not col_type.strip():
             raise ValueError("Ошибка: тип колонки должен быть непустой строкой.")
@@ -72,7 +74,9 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
         col_type = col_type.strip()
 
         if col_type not in ALLOWED_TYPES:
-            raise ValueError("Ошибка: неверный тип данных. Разрешены только int, str, bool.")
+            raise ValueError(
+                "Ошибка: неверный тип данных. Разрешены только int, str, bool."
+            )
 
         parsed_columns.append({"name": col_name, "type": col_type})
 
@@ -192,7 +196,9 @@ def insert(metadata: dict, table_name: str, values: list):
         col_type = col_def["type"]
 
         if col_type not in TYPE_CASTERS:
-            raise ValueError(f"Неподдерживаемый тип '{col_type}' для колонки '{col_name}'.")
+            raise ValueError(
+                f"Неподдерживаемый тип '{col_type}' для колонки '{col_name}'."
+            )
 
         caster = TYPE_CASTERS[col_type]
         value = caster(raw_value)

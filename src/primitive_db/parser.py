@@ -29,8 +29,11 @@ def parse_where_clause(where_str: str) -> dict:
 
     parts = where_str.split("=", 1)
     if len(parts) != 2:
-        raise ValueError(f"Неверный формат условия WHERE: '{where_str}'. Ожидается 'column = value'")
-    
+        raise ValueError(
+            f"Неверный формат условия WHERE: '{where_str}'. "
+            "Ожидается 'column = value'"
+        )
+
     column = parts[0].strip()
     value_str = parts[1].strip()
     
@@ -50,8 +53,11 @@ def parse_set_clause(set_str: str) -> dict:
 
     parts = set_str.split("=", 1)
     if len(parts) != 2:
-        raise ValueError(f"Неверный формат условия SET: '{set_str}'. Ожидается 'column = value'")
-    
+        raise ValueError(
+            f"Неверный формат условия SET: '{set_str}'. "
+            "Ожидается 'column = value'"
+        )
+
     column = parts[0].strip()
     value_str = parts[1].strip()
     
