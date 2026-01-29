@@ -187,7 +187,7 @@ def insert(metadata: dict, table_name: str, values: list):
     new_id = max_id + 1
 
     row = {"ID": new_id}
-    for (col_def, raw_value) in zip(data_cols, values):
+    for col_def, raw_value in zip(data_cols, values):
         col_name = col_def["name"]
         col_type = col_def["type"]
 

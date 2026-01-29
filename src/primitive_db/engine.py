@@ -44,6 +44,7 @@ def _print_help() -> None:
     print("<command> update <table> SET col = value WHERE col = value - обновить записи")
     print("<command> delete <table> WHERE col = value - удалить записи")
 
+
 def _cmd_tables(meta: dict) -> None:
     tables = sorted(meta["tables"].keys())
     if not tables:
@@ -79,6 +80,7 @@ def _cmd_describe(meta: dict, table_name: str) -> None:
             continue
 
         print(f"- {name}:{typ}")
+
 
 def welcome() -> None:
     print("Первая попытка запустить проект!")
